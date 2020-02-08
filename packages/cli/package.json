@@ -22,5 +22,5 @@
   "dependencies": {
     "@ts-schema-generator/explorer": "^0.0.3"
   },
-  "gitHead": "5aa6a90fc32e226da7d12725f8df2fd650306904"
+  "gitHead": "fbe60957bd001486425f2777f3fd821f669b5f8b"
 }
