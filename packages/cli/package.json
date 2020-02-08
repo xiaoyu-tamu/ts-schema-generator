@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -20,6 +20,6 @@
     "dev": "node dist/index.js"
   },
   "dependencies": {
-    "@ts-schema-generator/explorer": "^0.0.1"
+    "@ts-schema-generator/explorer": "^0.0.2"
   }
 }
