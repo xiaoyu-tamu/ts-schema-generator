@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/cli" },
+    { "path": "packages/plugin-hasura" },
+    { "path": "packages/plugin-typescript" },
+    { "path": "packages/plugin-typescript-enum" }
+  ]
+}

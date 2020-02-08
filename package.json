@@ -1,0 +1,56 @@
+{
+  "version": "0.0.1",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "www"
+  ],
+  "scripts": {
+    "prebuild": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo",
+    "build": "tsc -b -w",
+    "dev": "node -r dotenv/config ./packages/cli"
+  },
+  "author": {
+    "email": "xiaoyu.tamu@gmail.com",
+    "name": "Michael Li",
+    "url": "https://michael.land"
+  },
+  "devDependencies": {
+    "@types/node": "^13.7.0",
+    "dotenv": "^8.2.0",
+    "@types/prettier": "^1.19.0",
+    "@typescript-eslint/eslint-plugin": "^2.19.0",
+    "@typescript-eslint/parser": "^2.19.0",
+    "cz-conventional-changelog": "^3.1.0",
+    "eslint": "^6.8.0",
+    "husky": "^4.2.1",
+    "lerna": "^3.20.2",
+    "lint-staged": ">=10",
+    "prettier": "^1.19.1",
+    "rimraf": "^3.0.1",
+    "type-fest": "^0.10.0",
+    "typescript": "^3.7.5"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{js,jsx,ts,tsx,gql,graphql}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "prepare-commit-msg": "exec < /dev/tty && git cz --hook"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
