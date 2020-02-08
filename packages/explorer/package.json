@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/explorer",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -14,13 +14,13 @@
     "url": "https://michael.land"
   },
   "dependencies": {
-    "@ts-schema-generator/utils": "^0.0.5",
+    "@ts-schema-generator/utils": "^0.0.6",
     "change-case": "^4.1.1",
     "slonik": "22.2.1",
     "slonik-interceptor-preset": "1.2.9"
   },
   "devDependencies": {
-    "@ts-schema-generator/types": "^0.0.5",
+    "@ts-schema-generator/types": "^0.0.6",
     "@types/pluralize": "^0.0.29",
     "@types/slonik": "21.4.0"
   },
