@@ -23,5 +23,6 @@
     "@ts-schema-generator/types": "^0.0.2",
     "@types/pluralize": "^0.0.29",
     "@types/slonik": "21.4.0"
-  }
+  },
+  "gitHead": "5aa6a90fc32e226da7d12725f8df2fd650306904"
 }

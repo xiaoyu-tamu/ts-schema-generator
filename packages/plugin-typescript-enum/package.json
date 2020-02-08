@@ -18,5 +18,6 @@
   },
   "devDependencies": {
     "@ts-schema-generator/types": "^0.0.2"
-  }
+  },
+  "gitHead": "5aa6a90fc32e226da7d12725f8df2fd650306904"
 }
