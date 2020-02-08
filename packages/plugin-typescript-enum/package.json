@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/typescript-enum",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -14,10 +14,10 @@
     "url": "https://michael.land"
   },
   "dependencies": {
-    "@ts-schema-generator/utils": "^0.0.2"
+    "@ts-schema-generator/utils": "^0.0.3"
   },
   "devDependencies": {
-    "@ts-schema-generator/types": "^0.0.2"
+    "@ts-schema-generator/types": "^0.0.3"
   },
   "gitHead": "5aa6a90fc32e226da7d12725f8df2fd650306904"
 }
