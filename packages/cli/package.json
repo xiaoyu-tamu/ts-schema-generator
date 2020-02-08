@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/cli",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -16,6 +16,6 @@
     "dev": "node dist/index.js"
   },
   "dependencies": {
-    "@ts-schema-generator/explorer": "0.0.1"
+    "@ts-schema-generator/explorer": "0.0.0"
   }
 }
