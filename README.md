@@ -10,15 +10,13 @@ Install using `yarn`:
 
 create a basic `tsg.config.js` configuration file, point to your schema, and pick the plugins you wish to use. For example:
 
-```
+```js
 const path = require("path");
 require("dotenv").config();
 
 module.exports = {
   uri: process.env.DATABASE_URI,
-  plugins: [
-    { name: "typescript", filepath: path.join(process.cwd(), "generated.ts") },
-  ]
+  plugins: [{ name: "typescript", filepath: path.join(process.cwd(), "generated.ts") }]
 };
 ```
 
@@ -40,7 +38,7 @@ CREATE TABLE country
 
 And generate the following TypeScript typings:
 
-```
+```ts
 interface Country {
   value: string;
   comment?: string | null;
