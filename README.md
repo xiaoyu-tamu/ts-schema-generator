@@ -1,4 +1,4 @@
-# TS Schmea Generator
+# TS Schema Generator
 
 TS Schema Generator is a tool that generates code out of your PostgreSQL database. Whether you are developing a frontend or backend, you can utilize this tool to generate TypeScript interface definitions
 
