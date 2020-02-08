@@ -1,6 +1,10 @@
 {
   "name": "@ts-schema-generator/typescript",
   "version": "0.0.1",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -10,7 +14,9 @@
     "url": "https://michael.land"
   },
   "dependencies": {
-    "@ts-schema-generator/types": "^0.0.1",
     "@ts-schema-generator/utils": "^0.0.1"
+  },
+  "devDependencies": {
+    "@ts-schema-generator/types": "^0.0.1"
   }
 }

@@ -1,6 +1,10 @@
 {
   "name": "@ts-schema-generator/explorer",
   "version": "0.0.1",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -10,13 +14,13 @@
     "url": "https://michael.land"
   },
   "dependencies": {
-    "@ts-schema-generator/types": "^0.0.1",
     "@ts-schema-generator/utils": "^0.0.1",
     "change-case": "^4.1.1",
     "slonik": "22.2.1",
     "slonik-interceptor-preset": "1.2.9"
   },
   "devDependencies": {
+    "@ts-schema-generator/types": "^0.0.1",
     "@types/pluralize": "^0.0.29",
     "@types/slonik": "21.4.0"
   }

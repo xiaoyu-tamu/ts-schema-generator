@@ -1,6 +1,10 @@
 {
   "name": "@ts-schema-generator/cli",
   "version": "0.0.1",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
