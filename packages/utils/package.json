@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/utils",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -14,7 +14,7 @@
     "url": "https://michael.land"
   },
   "devDependencies": {
-    "@ts-schema-generator/types": "^0.0.3"
+    "@ts-schema-generator/types": "^0.0.4"
   },
   "gitHead": "fbe60957bd001486425f2777f3fd821f669b5f8b"
 }
