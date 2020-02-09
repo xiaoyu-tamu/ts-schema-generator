@@ -10,14 +10,21 @@ import {
   View,
   ViewDefinition
 } from "@ts-schema-generator/types";
-import { NotFoundError, sql, DatabasePoolType } from "slonik";
+import { createPool, DatabasePoolType, NotFoundError, sql } from "slonik";
+import { createInterceptors } from "slonik-interceptor-preset";
 
 export class PostgresExplorer implements Explorer {
   private readonly schema: Schema = "public" as Schema;
   private readonly types: Record<string, string> = {};
+  private readonly pool: DatabasePoolType;
 
-  constructor(private readonly conn: DatabasePoolType, options: ExplorerOptions = {}) {
+  constructor(uri: string, options: ExplorerOptions = {}) {
+    this.pool = createPool(uri, { interceptors: [...createInterceptors()] });
     if (options.schema) this.schema = options.schema;
+  }
+
+  public async close(): Promise<void> {
+    await this.pool.end();
   }
 
   public async getEnumValues(
@@ -29,7 +36,7 @@ export class PostgresExplorer implements Explorer {
     const value = sql.identifier([options.value]);
     const query = sql`SELECT ${key}, ${value} FROM ${tableName}`;
     try {
-      const values = await this.conn.many(query);
+      const values = await this.pool.many(query);
       return values;
     } catch (error) {
       // error instance of NotFoundError return false for some reason
@@ -111,7 +118,7 @@ export class PostgresExplorer implements Explorer {
           AND table_name = ${tableOrView}
         ORDER BY position;`;
 
-      const columns = await this.conn.many<{
+      const columns = await this.pool.many<{
         name: Column;
         comment: string;
         pgType: string;
@@ -140,7 +147,7 @@ export class PostgresExplorer implements Explorer {
       WHERE table_type = 'VIEW' AND
             table_schema = ${this.schema};`;
     try {
-      return await this.conn.many<{ name: View; comment: string }>(query);
+      return await this.pool.many<{ name: View; comment: string }>(query);
     } catch (error) {
       return [];
     }
@@ -157,7 +164,7 @@ export class PostgresExplorer implements Explorer {
       ORDER BY lower(table_name);`;
 
     try {
-      return await this.conn.many<{ name: Table; comment: string }>(query);
+      return await this.pool.many<{ name: Table; comment: string }>(query);
     } catch (error) {
       return [];
     }

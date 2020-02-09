@@ -3,8 +3,6 @@ import { Configuration, Plugin, PluginResults } from "@ts-schema-generator/types
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { format } from "prettier";
-import { createPool } from "slonik";
-import { createInterceptors } from "slonik-interceptor-preset";
 
 export async function main(): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -12,10 +10,7 @@ export async function main(): Promise<void> {
 
   const uri = config.uri || process.env.DATABASE_URI;
   if (!uri) throw new Error(`DATABASE_URI is required`);
-
-  const pool = createPool(uri, { interceptors: [...createInterceptors()] });
-
-  const explorer = new PostgresExplorer(pool);
+  const explorer = new PostgresExplorer(uri);
 
   const [tables, views] = await Promise.all([
     explorer.getTableDefinitions(),
@@ -65,7 +60,7 @@ export async function main(): Promise<void> {
     console.log(`File saved to ${filename}`);
   });
 
-  await pool.end();
+  await explorer.close();
 }
 
 main();
