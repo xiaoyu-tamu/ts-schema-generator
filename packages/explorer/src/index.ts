@@ -46,15 +46,16 @@ export class PostgresExplorer implements Explorer {
       throw error;
     }
   }
-  public async getViewDefinitions(): Promise<ViewDefinition[]> {
+  public async getViewDefinitions(schema?: Schema, views?: View[]): Promise<ViewDefinition[]> {
     try {
-      const views = await this.getViews();
+      const viewsWithComment = await this.getViews(schema, views);
+
       return Promise.all(
-        views.map(async view => ({
+        viewsWithComment.map(async view => ({
           type: "view" as const,
           name: view.name,
           comment: view.comment,
-          columns: await this.getColumnDefinitions(view.name)
+          columns: await this.getColumnDefinitions(view.name, schema)
         }))
       );
     } catch (error) {
@@ -63,11 +64,12 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  public async getTableDefinitions(): Promise<TableDefinition[]> {
+  public async getTableDefinitions(schema?: Schema, tables?: Table[]): Promise<TableDefinition[]> {
     try {
-      const tables = await this.getTables();
+      const tablesWithComment = await this.getTables(schema, tables);
+
       return Promise.all(
-        tables.map(async table => ({
+        tablesWithComment.map(async table => ({
           type: "table" as const,
           name: table.name,
           comment: table.comment,
@@ -80,7 +82,11 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  protected async getColumnDefinitions(tableOrView: Table | View): Promise<ColumnDefinition[]> {
+  protected async getColumnDefinitions(
+    tableOrView: Table | View,
+    schema?: Schema
+  ): Promise<ColumnDefinition[]> {
+    if (!schema) schema = this.schema;
     try {
       const query = sql`
         WITH primary_columns AS (
@@ -93,7 +99,7 @@ export class PostgresExplorer implements Explorer {
                         ON kcu.constraint_name = tc.constraint_name AND
                             kcu.constraint_schema = tc.constraint_schema
           WHERE tc.constraint_type = 'PRIMARY KEY'
-            AND tc.table_schema = ${this.schema}
+            AND tc.table_schema = ${schema}
             AND tc.table_name = ${tableOrView}
           ORDER BY
                 kcu.table_schema,
@@ -105,7 +111,7 @@ export class PostgresExplorer implements Explorer {
           column_name                                                              AS name,
           udt_name                                                                 AS pg_type,
           col_description(
-            (${`${this.schema}.${tableOrView}`})::regclass::oid, ordinal_position) AS comment,
+            (${`${schema}.${tableOrView}`})::regclass::oid, ordinal_position)      AS comment,
           is_nullable = 'YES'                                                      AS is_nullable,
           (SELECT key_column
             FROM primary_columns
@@ -114,7 +120,7 @@ export class PostgresExplorer implements Explorer {
           ordinal_position                                                         AS position,
           column_default IS NOT NULL                                               AS has_default
         FROM information_schema.columns
-        WHERE table_schema = ${this.schema}
+        WHERE table_schema = ${schema}
           AND table_name = ${tableOrView}
         ORDER BY position;`;
 
@@ -138,14 +144,23 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  protected async getViews(): Promise<{ name: View; comment: string }[]> {
+  protected async getViews(
+    schema?: Schema,
+    views?: View[]
+  ): Promise<{ name: View; comment: string }[]> {
+    if (!schema) schema = this.schema;
+    const filter =
+      views && views.length > 0 ? sql`AND table_name = ANY(${sql.array(views, `text`)})` : ``;
+
     const query = sql`
       SELECT
         table_name                                                                 AS name, 
         obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
       FROM information_schema.tables
       WHERE table_type = 'VIEW' AND
-            table_schema = ${this.schema};`;
+            table_schema = ${schema}
+            ${filter}
+      ORDER BY lower(table_name);`;
     try {
       return await this.pool.many<{ name: View; comment: string }>(query);
     } catch (error) {
@@ -153,14 +168,22 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  protected async getTables(): Promise<{ name: Table; comment: string }[]> {
+  protected async getTables(
+    schema?: Schema,
+    tables?: Table[]
+  ): Promise<{ name: Table; comment: string }[]> {
+    if (!schema) schema = this.schema;
+    const filter =
+      tables && tables.length > 0 ? sql`AND table_name = ANY(${sql.array(tables, "text")})` : ``;
+
     const query = sql`
       SELECT 
         table_name                                                                 AS name, 
         obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
       FROM information_schema.tables
       WHERE table_type = 'BASE TABLE' AND
-            table_schema = ${this.schema}
+            table_schema = ${schema}
+            ${filter}
       ORDER BY lower(table_name);`;
 
     try {
