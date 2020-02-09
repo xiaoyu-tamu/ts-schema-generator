@@ -48,6 +48,8 @@ export class PostgresExplorer implements Explorer {
   }
   public async getViewDefinitions(schema?: Schema, views?: View[]): Promise<ViewDefinition[]> {
     try {
+      if (!schema) schema = this.schema;
+
       const viewsWithComment = await this.getViews(schema, views);
 
       return Promise.all(
@@ -55,7 +57,7 @@ export class PostgresExplorer implements Explorer {
           type: "view" as const,
           name: view.name,
           comment: view.comment,
-          columns: await this.getColumnDefinitions(view.name, schema)
+          columns: await this.getColumnDefinitions(schema || this.schema, view.name)
         }))
       );
     } catch (error) {
@@ -66,6 +68,8 @@ export class PostgresExplorer implements Explorer {
 
   public async getTableDefinitions(schema?: Schema, tables?: Table[]): Promise<TableDefinition[]> {
     try {
+      if (!schema) schema = this.schema;
+
       const tablesWithComment = await this.getTables(schema, tables);
 
       return Promise.all(
@@ -73,7 +77,7 @@ export class PostgresExplorer implements Explorer {
           type: "table" as const,
           name: table.name,
           comment: table.comment,
-          columns: await this.getColumnDefinitions(table.name)
+          columns: await this.getColumnDefinitions(schema || this.schema, table.name)
         }))
       );
     } catch (error) {
@@ -83,10 +87,9 @@ export class PostgresExplorer implements Explorer {
   }
 
   protected async getColumnDefinitions(
-    tableOrView: Table | View,
-    schema?: Schema
+    schema: Schema,
+    tableOrView: Table | View
   ): Promise<ColumnDefinition[]> {
-    if (!schema) schema = this.schema;
     try {
       const query = sql`
         WITH primary_columns AS (
@@ -145,10 +148,9 @@ export class PostgresExplorer implements Explorer {
   }
 
   protected async getViews(
-    schema?: Schema,
+    schema: Schema,
     views?: View[]
   ): Promise<{ name: View; comment: string }[]> {
-    if (!schema) schema = this.schema;
     const filter =
       views && views.length > 0 ? sql`AND table_name = ANY(${sql.array(views, `text`)})` : ``;
 
@@ -169,10 +171,9 @@ export class PostgresExplorer implements Explorer {
   }
 
   protected async getTables(
-    schema?: Schema,
+    schema: Schema,
     tables?: Table[]
   ): Promise<{ name: Table; comment: string }[]> {
-    if (!schema) schema = this.schema;
     const filter =
       tables && tables.length > 0 ? sql`AND table_name = ANY(${sql.array(tables, "text")})` : ``;
 
