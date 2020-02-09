@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ts-schema-generator/utils": "^0.0.8",
+    "@ts-schema-generator/types": "^0.0.8",
     "change-case": "^4.1.1",
     "slonik": "22.2.1",
     "slonik-interceptor-preset": "1.2.9"
