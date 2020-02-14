@@ -54,7 +54,7 @@ export class PostgresExplorer implements Explorer {
             schema: view.schema,
             name: view.name,
             comment: view.comment,
-            columns: await this.getColumnDefinitions(view.schema, view.name)
+            columns: await this.getColumnDefinitions(`${view.schema}.${view.name}` as View)
           };
         })
       );
@@ -74,7 +74,7 @@ export class PostgresExplorer implements Explorer {
             schema: table.schema,
             name: table.name,
             comment: table.comment,
-            columns: await this.getColumnDefinitions(table.schema, table.name)
+            columns: await this.getColumnDefinitions(`${table.schema}.${table.name}` as Table)
           };
         })
       );
@@ -84,10 +84,9 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  protected async getColumnDefinitions(
-    schema: Schema,
-    tableOrView: Table | View
-  ): Promise<ColumnDefinition[]> {
+  protected async getColumnDefinitions(tableOrView: Table | View): Promise<ColumnDefinition[]> {
+    const [schemaName = this.schema, tableOrViewName] = splitTableOrViewName(tableOrView);
+
     try {
       const query = sql`
         WITH primary_columns AS (
@@ -100,8 +99,8 @@ export class PostgresExplorer implements Explorer {
                         ON kcu.constraint_name = tc.constraint_name AND
                             kcu.constraint_schema = tc.constraint_schema
           WHERE tc.constraint_type = 'PRIMARY KEY'
-            AND tc.table_schema = ${schema}
-            AND tc.table_name = ${tableOrView}
+            AND tc.table_schema = ${schemaName}
+            AND tc.table_name = ${tableOrViewName}
           ORDER BY
                 kcu.table_schema,
                 kcu.table_name,
@@ -112,7 +111,7 @@ export class PostgresExplorer implements Explorer {
           column_name                                                              AS name,
           udt_name                                                                 AS pg_type,
           col_description(
-            (${`${schema}.${tableOrView}`})::regclass::oid, ordinal_position)      AS comment,
+            (${tableOrView})::regclass::oid, ordinal_position)      AS comment,
           is_nullable = 'YES'                                                      AS is_nullable,
           (SELECT key_column
             FROM primary_columns
@@ -121,8 +120,8 @@ export class PostgresExplorer implements Explorer {
           ordinal_position                                                         AS position,
           column_default IS NOT NULL                                               AS has_default
         FROM information_schema.columns
-        WHERE table_schema = ${schema}
-          AND table_name = ${tableOrView}
+        WHERE table_schema = ${schemaName}
+          AND table_name = ${tableOrViewName}
         ORDER BY position;`;
 
       const columns = await this.pool.many<{
