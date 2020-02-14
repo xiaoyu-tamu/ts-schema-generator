@@ -149,23 +149,22 @@ export class PostgresExplorer implements Explorer {
     viewOrTables?: T[]
   ): Promise<{ name: T; comment: string; schema: Schema }[]> {
     const obj: Record<string, T[]> = { public: [] };
-
     if (viewOrTables) {
-      for (const view of viewOrTables) {
-        const [schemaName = this.schema, viewOrTableName] = splitTableOrViewName(view);
+      for (const viewOrTable of viewOrTables) {
+        const [schemaName = this.schema, viewOrTableName] = splitTableOrViewName(viewOrTable);
         if (!obj[schemaName]) obj[schemaName] = [];
         if (!obj[schemaName].includes(viewOrTableName)) obj[schemaName].push(viewOrTableName);
       }
     }
 
-    try {
-      const data = await Promise.all(
-        Object.entries(obj).map(([schemaName, viewOrTableNames]) => {
-          const tableOrViewFilter =
-            viewOrTables && viewOrTables.length > 0
-              ? sql`AND table_name = ANY(${sql.array(viewOrTableNames, `text`)})`
-              : sql``;
-          const query = sql`
+    const data = await Promise.all(
+      Object.entries(obj).map(([schemaName, viewOrTableNames]) => {
+        const tableOrViewFilter =
+          viewOrTables && viewOrTables.length > 0
+            ? sql`AND table_name = ANY(${sql.array(viewOrTableNames, `text`)})`
+            : sql``;
+
+        const query = sql`
             SELECT
               table_name                                                                 AS name, 
               table_schema                                                               AS schema,
@@ -175,16 +174,14 @@ export class PostgresExplorer implements Explorer {
               AND table_type = ${type === "table" ? "BASE TABLE" : "VIEW"}
                   ${tableOrViewFilter}
             ORDER BY lower(table_name);`;
-          return this.pool.many<{ name: T; comment: string; schema: Schema }>(query);
-        })
-      );
-      return data.flat();
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        return [];
-      }
-      throw error;
-    }
+        return this.pool.many<{ name: T; comment: string; schema: Schema }>(query).catch(error => {
+          if (error instanceof NotFoundError) {
+            return [];
+          }
+        });
+      })
+    );
+    return data.flat();
   }
 
   protected getTypescriptType(udtName: string): DefaultTsType {
