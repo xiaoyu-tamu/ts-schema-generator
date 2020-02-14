@@ -12,53 +12,51 @@ import {
 } from "@ts-schema-generator/types";
 import { createPool, DatabasePoolType, NotFoundError, sql } from "slonik";
 import { createInterceptors } from "slonik-interceptor-preset";
+import { splitTableOrViewName } from "./utils";
 
 export class PostgresExplorer implements Explorer {
   private readonly schema: Schema = "public" as Schema;
   private readonly types: Record<string, string> = {};
-  private readonly pool: DatabasePoolType;
+  public readonly pool: DatabasePoolType;
 
-  constructor(uri: string, options: ExplorerOptions = {}) {
-    this.pool = createPool(uri, { interceptors: [...createInterceptors()] });
+  constructor(uriOrPool: string, options: ExplorerOptions = {}) {
+    this.pool = createPool(uriOrPool, { interceptors: [...createInterceptors()] });
+    if (options.types) this.types = options.types;
     if (options.schema) this.schema = options.schema;
   }
 
-  public async close(): Promise<void> {
-    await this.pool.end();
-  }
-
   public async getEnumValues(
+    schema: Schema,
     table: Table,
     options: { key: string; value: string }
   ): Promise<Record<string, string | number>[]> {
-    const tableName = sql.identifier([this.schema, table]);
-    const key = sql.identifier([options.key]);
-    const value = sql.identifier([options.value]);
-    const query = sql`SELECT ${key}, ${value} FROM ${tableName}`;
+    const query = sql`
+      SELECT ${sql.identifier([options.key])},
+             ${sql.identifier([options.value])}
+        FROM ${sql.identifier([schema, table])}`;
     try {
       const values = await this.pool.many(query);
       return values;
     } catch (error) {
-      // error instance of NotFoundError return false for some reason
-      if (error.name === "NotFoundError") {
-        return [];
-      }
+      if (error instanceof NotFoundError) return [];
       throw error;
     }
   }
-  public async getViewDefinitions(schema?: Schema, views?: View[]): Promise<ViewDefinition[]> {
-    try {
-      if (!schema) schema = this.schema;
 
-      const viewsWithComment = await this.getViews(schema, views);
+  public async getViewDefinitions(views?: View[]): Promise<ViewDefinition[]> {
+    try {
+      const viewsWithComment = await this.getViewsOrTables("view", views);
 
       return Promise.all(
-        viewsWithComment.map(async view => ({
-          type: "view" as const,
-          name: view.name,
-          comment: view.comment,
-          columns: await this.getColumnDefinitions(schema || this.schema, view.name)
-        }))
+        viewsWithComment.map(async view => {
+          return {
+            type: "view" as const,
+            schema: view.schema,
+            name: view.name,
+            comment: view.comment,
+            columns: await this.getColumnDefinitions(view.schema, view.name)
+          };
+        })
       );
     } catch (error) {
       if (error instanceof NotFoundError) return [];
@@ -66,19 +64,19 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  public async getTableDefinitions(schema?: Schema, tables?: Table[]): Promise<TableDefinition[]> {
+  public async getTableDefinitions(tables?: Table[]): Promise<TableDefinition[]> {
     try {
-      if (!schema) schema = this.schema;
-
-      const tablesWithComment = await this.getTables(schema, tables);
-
+      const tablesWithComment = await this.getViewsOrTables("table", tables);
       return Promise.all(
-        tablesWithComment.map(async table => ({
-          type: "table" as const,
-          name: table.name,
-          comment: table.comment,
-          columns: await this.getColumnDefinitions(schema || this.schema, table.name)
-        }))
+        tablesWithComment.map(async table => {
+          return {
+            type: "table" as const,
+            schema: table.schema,
+            name: table.name,
+            comment: table.comment,
+            columns: await this.getColumnDefinitions(table.schema, table.name)
+          };
+        })
       );
     } catch (error) {
       if (error instanceof NotFoundError) return [];
@@ -147,50 +145,46 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  protected async getViews(
-    schema: Schema,
-    views?: View[]
-  ): Promise<{ name: View; comment: string }[]> {
-    const filter =
-      views && views.length > 0 ? sql`AND table_name = ANY(${sql.array(views, `text`)})` : ``;
+  protected async getViewsOrTables<T extends View | Table>(
+    type: "table" | "view",
+    viewOrTables?: T[]
+  ): Promise<{ name: T; comment: string; schema: Schema }[]> {
+    const obj: Record<string, T[]> = { public: [] };
 
-    const query = sql`
-      SELECT
-        table_name                                                                 AS name, 
-        obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
-      FROM information_schema.tables
-      WHERE table_type = 'VIEW' AND
-            table_schema = ${schema}
-            ${filter}
-      ORDER BY lower(table_name);`;
-    try {
-      return await this.pool.many<{ name: View; comment: string }>(query);
-    } catch (error) {
-      return [];
+    if (viewOrTables) {
+      for (const view of viewOrTables) {
+        const [schemaName = this.schema, viewOrTableName] = splitTableOrViewName(view);
+        if (!obj[schemaName]) obj[schemaName] = [];
+        if (!obj[schemaName].includes(viewOrTableName)) obj[schemaName].push(viewOrTableName);
+      }
     }
-  }
-
-  protected async getTables(
-    schema: Schema,
-    tables?: Table[]
-  ): Promise<{ name: Table; comment: string }[]> {
-    const filter =
-      tables && tables.length > 0 ? sql`AND table_name = ANY(${sql.array(tables, "text")})` : ``;
-
-    const query = sql`
-      SELECT 
-        table_name                                                                 AS name, 
-        obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
-      FROM information_schema.tables
-      WHERE table_type = 'BASE TABLE' AND
-            table_schema = ${schema}
-            ${filter}
-      ORDER BY lower(table_name);`;
 
     try {
-      return await this.pool.many<{ name: Table; comment: string }>(query);
+      const data = await Promise.all(
+        Object.entries(obj).map(([schemaName, viewOrTableNames]) => {
+          const tableOrViewFilter =
+            viewOrTables && viewOrTables.length > 0
+              ? sql`AND table_name = ANY(${sql.array(viewOrTableNames, `text`)})`
+              : sql``;
+          const query = sql`
+            SELECT
+              table_name                                                                 AS name, 
+              table_schema                                                               AS schema,
+              obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
+            FROM information_schema.tables
+            WHERE table_schema = ${schemaName}
+              AND table_type = ${type === "table" ? "BASE TABLE" : "VIEW"}
+                  ${tableOrViewFilter}
+            ORDER BY lower(table_name);`;
+          return this.pool.many<{ name: T; comment: string; schema: Schema }>(query);
+        })
+      );
+      return data.flat();
     } catch (error) {
-      return [];
+      if (error instanceof NotFoundError) {
+        return [];
+      }
+      throw error;
     }
   }
 

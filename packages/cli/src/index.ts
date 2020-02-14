@@ -1,12 +1,5 @@
 import { PostgresExplorer } from "@ts-schema-generator/explorer";
-import {
-  Configuration,
-  Plugin,
-  PluginResults,
-  Schema,
-  Table,
-  View
-} from "@ts-schema-generator/types";
+import { Configuration, Plugin, PluginResults } from "@ts-schema-generator/types";
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { format } from "prettier";
@@ -20,8 +13,8 @@ export async function main(): Promise<void> {
   const explorer = new PostgresExplorer(uri);
 
   const definitions = await Promise.all([
-    explorer.getTableDefinitions("public" as Schema, ["country", "attribute"] as Table[]),
-    explorer.getViewDefinitions("public" as Schema, ["permission", "review"] as View[])
+    explorer.getTableDefinitions(config.tables),
+    explorer.getViewDefinitions(config.views)
   ]);
 
   const resultsByFilepath: Record<string, PluginResults[]> = {};
@@ -65,7 +58,7 @@ export async function main(): Promise<void> {
     console.log(`File saved to ${filepath}`);
   });
 
-  await explorer.close();
+  await explorer.pool.end();
 }
 
 main();

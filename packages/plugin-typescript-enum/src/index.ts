@@ -28,7 +28,7 @@ const plugin: Plugin<Options> = async (explorer, definitions, options) => {
       throw new InvalidEnumError(table.name, table.columns.length);
     }
 
-    const enumValues = await explorer.getEnumValues(table.name, enumColumns);
+    const enumValues = await explorer.getEnumValues(table.schema, table.name, enumColumns);
 
     const enums = enumValues
       .map(x => {
@@ -39,7 +39,7 @@ const plugin: Plugin<Options> = async (explorer, definitions, options) => {
 
         const value = x[enumColumns.value];
         return typeof key === "string"
-          ? `${pascalCase(String(value))}='${key}'`
+          ? `${pascalCase(String(value))}='${key}',`
           : `${pascalCase(String(value))}=${key},`;
       })
       .join("\n");

@@ -3,6 +3,8 @@ import { Opaque } from "type-fest";
 export interface Configuration {
   uri: string;
   plugins: { name: string; filepath: string }[];
+  tables?: Table[];
+  views?: View[];
   getEnumColumns: (table: TableDefinition) => { key: string; value: string };
 }
 
@@ -23,6 +25,7 @@ export type Table = Opaque<string, "table">;
 
 export interface TableDefinition {
   type: "table";
+  schema: Schema;
   name: Table;
   comment: string | null;
   columns: ColumnDefinition[];
@@ -32,6 +35,7 @@ export type View = Opaque<string, "view">;
 
 export interface ViewDefinition {
   type: "view";
+  schema: Schema;
   name: View;
   comment: string | null;
   columns: ColumnDefinition[];
@@ -43,17 +47,18 @@ export interface EnumOption {
 }
 
 export interface ExplorerOptions {
-  schema?: Schema;
   types?: Record<string, string>;
-  tableNaming?: StringCase;
-  columnNaming?: StringCase;
-  viewNaming?: StringCase;
+  schema?: Schema;
 }
 
 export interface Explorer {
-  getTableDefinitions(): Promise<TableDefinition[]>;
-  getViewDefinitions(): Promise<ViewDefinition[]>;
-  getEnumValues(table: Table, options: EnumOption): Promise<Array<Record<string, string | number>>>;
+  getTableDefinitions(tables: Table[]): Promise<TableDefinition[]>;
+  getViewDefinitions(views: View[]): Promise<ViewDefinition[]>;
+  getEnumValues(
+    schema: Schema,
+    table: Table,
+    options: EnumOption
+  ): Promise<Array<Record<string, string | number>>>;
 }
 
 export type StringCase = "camelCase" | "pascalCase" | "snakeCase";
