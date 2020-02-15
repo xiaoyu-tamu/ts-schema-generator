@@ -6,6 +6,7 @@
     "www"
   ],
   "scripts": {
+    "prepublish": "yarn build",
     "prebuild": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo",
     "build": "tsc -b",
     "dev": "node -r dotenv/config ./packages/cli"

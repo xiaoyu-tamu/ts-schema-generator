@@ -1,4 +1,4 @@
-import { Table, View, Schema } from "@ts-schema-generator/types";
+import { Schema, Table, View } from "@ts-schema-generator/types";
 
 export function splitTableOrViewName<T extends Table | View>(name: T): [Schema | undefined, T] {
   const [schema, tableOrView, ...rest] = name.split(".");
