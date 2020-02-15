@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "prebuild": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo",
-    "build": "tsc -b -w",
+    "build": "tsc -b",
     "dev": "node -r dotenv/config ./packages/cli"
   },
   "author": {

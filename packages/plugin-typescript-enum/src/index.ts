@@ -39,8 +39,8 @@ const plugin: Plugin<Options> = async (explorer, definitions, options) => {
 
         const value = x[enumColumns.value];
         return typeof key === "string"
-          ? `${pascalCase(String(value))}='${key}',`
-          : `${pascalCase(String(value))}=${key},`;
+          ? `${pascalCase(String(key))}='${value}',`
+          : `${pascalCase(String(key))}=${value},`;
       })
       .join("\n");
     const name = pascalCase(table.name);
