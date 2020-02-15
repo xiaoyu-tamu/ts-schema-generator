@@ -18,7 +18,6 @@ const plugin: Plugin<Options> = async (explorer, definitions, options) => {
 
   return { outputs: outputs.filter(isString) };
 
-  // =======
   async function generator(table: TableDefinition): Promise<string | undefined> {
     const enumColumns = options.getEnumColumns(table);
     if (!enumColumns) return;
@@ -38,6 +37,7 @@ const plugin: Plugin<Options> = async (explorer, definitions, options) => {
         }
 
         const value = x[enumColumns.value];
+
         return typeof value === "string"
           ? `${pascalCase(String(key))}='${value}',`
           : `${pascalCase(String(key))}=${value},`;
