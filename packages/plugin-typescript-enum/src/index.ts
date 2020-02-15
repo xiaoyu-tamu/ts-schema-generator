@@ -38,7 +38,7 @@ const plugin: Plugin<Options> = async (explorer, definitions, options) => {
         }
 
         const value = x[enumColumns.value];
-        return typeof key === "string"
+        return typeof value === "string"
           ? `${pascalCase(String(key))}='${value}',`
           : `${pascalCase(String(key))}=${value},`;
       })
