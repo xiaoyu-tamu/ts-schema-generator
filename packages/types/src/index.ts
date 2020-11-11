@@ -58,7 +58,7 @@ export interface Explorer {
     schema: Schema,
     table: Table,
     options: EnumOption
-  ): Promise<Array<Record<string, string | number>>>;
+  ): Promise<readonly Record<string, string | number>[]>;
 }
 
 export type StringCase = "camelCase" | "pascalCase" | "snakeCase";
@@ -81,7 +81,9 @@ export interface PluginResults {
   outputs: string[];
 }
 
-export interface Plugin<Options extends object = object> {
+export type PluginOptions = Record<string, any>;
+
+export interface Plugin<Options extends PluginOptions = PluginOptions> {
   (
     explorer: Explorer,
     definitions: (TableDefinition | ViewDefinition)[],

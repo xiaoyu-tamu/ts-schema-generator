@@ -8,7 +8,7 @@ import {
   Table,
   TableDefinition,
   View,
-  ViewDefinition
+  ViewDefinition,
 } from "@ts-schema-generator/types";
 import { createPool, DatabasePoolType, NotFoundError, sql } from "slonik";
 import { createInterceptors } from "slonik-interceptor-preset";
@@ -29,14 +29,12 @@ export class PostgresExplorer implements Explorer {
     schema: Schema,
     table: Table,
     options: { key: string; value: string }
-  ): Promise<Record<string, string | number>[]> {
-    const query = sql`
+  ): Promise<readonly Record<string, string | number>[]> {
+    try {
+      return await this.pool.many<Record<string, string | number>>(sql`
       SELECT ${sql.identifier([options.key])},
              ${sql.identifier([options.value])}
-        FROM ${sql.identifier([schema, table])}`;
-    try {
-      const values = await this.pool.many(query);
-      return values;
+        FROM ${sql.identifier([schema, table])}`);
     } catch (error) {
       if (error instanceof NotFoundError) return [];
       throw error;
@@ -54,7 +52,7 @@ export class PostgresExplorer implements Explorer {
             schema: view.schema,
             name: view.name,
             comment: view.comment,
-            columns: await this.getColumnDefinitions(`${view.schema}.${view.name}` as View)
+            columns: await this.getColumnDefinitions(`${view.schema}.${view.name}` as View),
           };
         })
       );
@@ -74,7 +72,7 @@ export class PostgresExplorer implements Explorer {
             schema: table.schema,
             name: table.name,
             comment: table.comment,
-            columns: await this.getColumnDefinitions(`${table.schema}.${table.name}` as Table)
+            columns: await this.getColumnDefinitions(`${table.schema}.${table.name}` as Table),
           };
         })
       );
@@ -84,59 +82,16 @@ export class PostgresExplorer implements Explorer {
     }
   }
 
-  protected async getColumnDefinitions(tableOrView: Table | View): Promise<ColumnDefinition[]> {
-    const [schemaName = this.schema, tableOrViewName] = splitTableOrViewName(tableOrView);
+  protected async getColumnDefinitions(name: Table | View): Promise<ColumnDefinition[]> {
+    const [schema = this.schema, tableOrView] = splitTableOrViewName(name);
 
     try {
-      const query = sql`
-        WITH primary_columns AS (
-          SELECT 
-                ordinal_position AS position,
-                kcu.table_name,
-                kcu.column_name  AS key_column
-          FROM information_schema.table_constraints tc
-              LEFT JOIN information_schema.key_column_usage kcu
-                        ON kcu.constraint_name = tc.constraint_name AND
-                            kcu.constraint_schema = tc.constraint_schema
-          WHERE tc.constraint_type = 'PRIMARY KEY'
-            AND tc.table_schema = ${schemaName}
-            AND tc.table_name = ${tableOrViewName}
-          ORDER BY
-                kcu.table_schema,
-                kcu.table_name,
-                position
-        )
+      const columns = await this.pool.many(makeGetColumnDefinitionsSQL({ schema, tableOrView }));
 
-        SELECT
-          column_name                                                              AS name,
-          udt_name                                                                 AS pg_type,
-          col_description(
-            (${tableOrView})::regclass::oid, ordinal_position)      AS comment,
-          is_nullable = 'YES'                                                      AS is_nullable,
-          (SELECT key_column
-            FROM primary_columns
-            WHERE key_column = column_name
-              AND primary_columns.table_name = columns.table_name) IS NOT NULL     AS is_primary,
-          ordinal_position                                                         AS position,
-          column_default IS NOT NULL                                               AS has_default
-        FROM information_schema.columns
-        WHERE table_schema = ${schemaName}
-          AND table_name = ${tableOrViewName}
-        ORDER BY position;`;
-
-      const columns = await this.pool.many<{
-        name: Column;
-        comment: string;
-        pgType: string;
-        position: number;
-        isNullable: boolean;
-        isPrimary: boolean;
-        hasDefault: boolean;
-      }>(query);
       return columns.map(column => ({
         ...column,
         name: column.name,
-        tsType: this.getTypescriptType(column.pgType)
+        tsType: this.getTypescriptType(column.pgType),
       }));
     } catch (error) {
       if (error instanceof NotFoundError) return [];
@@ -158,27 +113,14 @@ export class PostgresExplorer implements Explorer {
     }
 
     const data = await Promise.all(
-      Object.entries(obj).map(([schemaName, viewOrTableNames]) => {
-        const tableOrViewFilter =
-          viewOrTables && viewOrTables.length > 0
-            ? sql`AND table_name = ANY(${sql.array(viewOrTableNames, `text`)})`
-            : sql``;
-
-        const query = sql`
-            SELECT
-              table_name                                                                 AS name, 
-              table_schema                                                               AS schema,
-              obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
-            FROM information_schema.tables
-            WHERE table_schema = ${schemaName}
-              AND table_type = ${type === "table" ? "BASE TABLE" : "VIEW"}
-                  ${tableOrViewFilter}
-            ORDER BY lower(table_name);`;
-        return this.pool.many<{ name: T; comment: string; schema: Schema }>(query).catch(error => {
-          if (error instanceof NotFoundError) {
-            return [];
-          }
-        });
+      Object.entries(obj).map(([schema, viewOrTableNames]) => {
+        return this.pool
+          .many(makeGetTableInformationSQL({ schema, type, viewOrTableNames }))
+          .catch(error => {
+            if (error instanceof NotFoundError) {
+              return [] as any[];
+            }
+          });
       })
     );
     return data.flat();
@@ -276,4 +218,84 @@ export class PostgresExplorer implements Explorer {
       }
     }
   }
+}
+
+interface GetColumnDefinitionsSQLParams {
+  schema: string;
+  tableOrView: string;
+}
+
+interface GetColumnDefinitionsSQLResult {
+  name: Column;
+  comment: string;
+  pgType: string;
+  position: number;
+  isNullable: boolean;
+  isPrimary: boolean;
+  hasDefault: boolean;
+}
+function makeGetColumnDefinitionsSQL({ schema, tableOrView }: GetColumnDefinitionsSQLParams) {
+  return sql<GetColumnDefinitionsSQLResult>`
+    WITH primary_columns AS (
+      SELECT 
+            ordinal_position AS position,
+            kcu.table_name,
+            kcu.column_name  AS key_column
+      FROM information_schema.table_constraints tc
+          LEFT JOIN information_schema.key_column_usage kcu
+                    ON kcu.constraint_name = tc.constraint_name AND
+                        kcu.constraint_schema = tc.constraint_schema
+      WHERE tc.constraint_type = 'PRIMARY KEY'
+        AND tc.table_schema = ${schema}
+        AND tc.table_name = ${tableOrView}
+      ORDER BY
+            kcu.table_schema,
+            kcu.table_name,
+            position
+    )
+  
+    SELECT
+      column_name                                                              AS name,
+      udt_name                                                                 AS pg_type,
+      col_description(
+        (${tableOrView})::regclass::oid, ordinal_position)      AS comment,
+      is_nullable = 'YES'                                                      AS is_nullable,
+      (SELECT key_column
+        FROM primary_columns
+        WHERE key_column = column_name
+          AND primary_columns.table_name = columns.table_name) IS NOT NULL     AS is_primary,
+      ordinal_position                                                         AS position,
+      column_default IS NOT NULL                                               AS has_default
+    FROM information_schema.columns
+    WHERE table_schema = ${schema}
+      AND table_name = ${tableOrView}
+    ORDER BY position;`;
+}
+
+export interface MakeGetTableInformationSQLParams {
+  schema: string;
+  type: "table" | "view";
+  viewOrTableNames?: string[];
+}
+
+function makeGetTableInformationSQL({
+  schema,
+  type,
+  viewOrTableNames,
+}: MakeGetTableInformationSQLParams) {
+  const conditionFilter =
+    viewOrTableNames && viewOrTableNames.length > 0
+      ? sql`AND table_name = ANY(${sql.array(viewOrTableNames, `text`)})`
+      : sql``;
+
+  return sql<{ name: string; comment: string; schema: Schema }>`
+  SELECT
+    table_name                                                                 AS name, 
+    table_schema                                                               AS schema,
+    obj_description((table_schema || '.' || table_name)::REGCLASS, 'pg_class') AS comment
+  FROM information_schema.tables
+  WHERE table_schema = ${schema}
+    AND table_type = ${type === "table" ? "BASE TABLE" : "VIEW"}
+        ${conditionFilter}
+  ORDER BY lower(table_name);`;
 }

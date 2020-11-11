@@ -17,13 +17,12 @@
     "@ts-schema-generator/types": "^0.1.1",
     "@ts-schema-generator/utils": "^0.1.1",
     "change-case": "^4.1.1",
-    "slonik": "22.2.1",
-    "slonik-interceptor-preset": "1.2.9"
+    "slonik": "23.0.2",
+    "slonik-interceptor-preset": "1.2.10"
   },
   "devDependencies": {
-    "@ts-schema-generator/types": "^0.0.8",
-    "@types/pluralize": "^0.0.29",
-    "@types/slonik": "21.4.0"
+    "@ts-schema-generator/types": "^0.1.1",
+    "@types/pluralize": "^0.0.29" 
   },
   "gitHead": "d94b2c8ee08f289c2d72ef6a8fdf082c13ff02eb"
 }
