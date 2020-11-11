@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/typescript",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -14,10 +14,10 @@
     "url": "https://michael.land"
   },
   "dependencies": {
-    "@ts-schema-generator/utils": "^0.1.8"
+    "@ts-schema-generator/utils": "^0.1.9"
   },
   "devDependencies": {
-    "@ts-schema-generator/types": "^0.1.8"
+    "@ts-schema-generator/types": "^0.1.9"
   },
   "gitHead": "d94b2c8ee08f289c2d72ef6a8fdf082c13ff02eb"
 }

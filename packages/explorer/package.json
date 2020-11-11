@@ -1,6 +1,6 @@
 {
   "name": "@ts-schema-generator/explorer",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -14,8 +14,8 @@
     "url": "https://michael.land"
   },
   "dependencies": {
-    "@ts-schema-generator/types": "^0.1.8",
-    "@ts-schema-generator/utils": "^0.1.8",
+    "@ts-schema-generator/types": "^0.1.9",
+    "@ts-schema-generator/utils": "^0.1.9",
     "change-case": "^4.1.1",
     "slonik": "23.0.2",
     "slonik-interceptor-preset": "1.2.10"
